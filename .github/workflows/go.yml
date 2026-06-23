@@ -1,0 +1,31 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latestclea
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+        cache: true
+
+    - name: Install Dependencies
+      run: go mod download
+
+    - name: Build Packages
+      run: go build -v ./...
+
+    - name: Run Tests
+      run: go test -v -race ./...
