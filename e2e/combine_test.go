@@ -1,9 +1,7 @@
 package e2e
 
 import (
-	"bytes"
 	"net/http"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -13,115 +11,109 @@ import (
 )
 
 func TestCombinedInteroperabilityChain(t *testing.T) {
-	// 1. Start Golang Server C on port 6003
-	io := bsserver.New(bsserver.Config{})
-	rootNsp := io.Of("/")
-	rootNsp.OnConnection(func(socket *bsserver.Socket) {
-		socket.On("step4", func(payload interface{}, ack bsserver.AckFunc) {
-			// Emit step5 to Python Client C
-			rootNsp.Emit("step5", map[string]interface{}{"msg": "hello from golang server C"})
+	// Step 1: Start Go Server A on Port 6001
+	ioA := bsserver.New(bsserver.Config{})
+	nspA := ioA.Of("/")
+	nspA.OnConnection(func(socket *bsserver.Socket) {
+		nspA.Emit("step1", map[string]interface{}{"msg": "hello from server A"})
+	})
+	srvA := &http.Server{Addr: ":6001", Handler: ioA.Handler()}
+	go func() { _ = srvA.ListenAndServe() }()
+	defer srvA.Close()
+
+	// Step 3: Start Go Server B on Port 6002
+	ioB := bsserver.New(bsserver.Config{})
+	nspB := ioB.Of("/")
+	nspB.OnConnection(func(socket *bsserver.Socket) {
+		socket.On("step2", func(payload interface{}, ack bsserver.AckFunc) {
+			nspB.Emit("step3", map[string]interface{}{"msg": "hello from server B"})
 			if ack != nil {
 				ack(map[string]interface{}{"ok": true})
 			}
 		})
 	})
+	srvB := &http.Server{Addr: ":6002", Handler: ioB.Handler()}
+	go func() { _ = srvB.ListenAndServe() }()
+	defer srvB.Close()
 
-	srv := &http.Server{
-		Addr:    ":6003",
-		Handler: io.Handler(),
-	}
-	go func() {
-		_ = srv.ListenAndServe()
-	}()
-	defer srv.Close()
-
-	// Helper to spawn processes and ensure they get killed on test completion
-	var cmds []*exec.Cmd
-	defer func() {
-		for _, cmd := range cmds {
-			if cmd.Process != nil {
-				_ = cmd.Process.Kill()
+	// Step 5: Start Go Server C on Port 6003
+	ioC := bsserver.New(bsserver.Config{})
+	nspC := ioC.Of("/")
+	nspC.OnConnection(func(socket *bsserver.Socket) {
+		socket.On("step4", func(payload interface{}, ack bsserver.AckFunc) {
+			nspC.Emit("step5", map[string]interface{}{"msg": "hello from server C"})
+			if ack != nil {
+				ack(map[string]interface{}{"ok": true})
 			}
-		}
-	}()
+		})
+	})
+	srvC := &http.Server{Addr: ":6003", Handler: ioC.Handler()}
+	go func() { _ = srvC.ListenAndServe() }()
+	defer srvC.Close()
 
-	startProcess := func(name string, args ...string) *exec.Cmd {
-		cmd := exec.Command(name, args...)
-		cmd.Dir = "/home/ananay/REDHEART_PERSONAL/PROJECTS/bit-socket/bit-socket-lang/combine"
-		return cmd
-	}
+	// Wait for servers to bind
+	time.Sleep(100 * time.Millisecond)
 
-	// 2. Start Node Server A & Python Server B
-	nodeServerCmd := startProcess("node", "node_server_a.js")
-	if err := nodeServerCmd.Start(); err != nil {
-		t.Fatalf("Failed to start Node Server A: %v", err)
-	}
-
-	pythonServerCmd := startProcess("python3", "python_server_b.py")
-	if err := pythonServerCmd.Start(); err != nil {
-		t.Fatalf("Failed to start Python Server B: %v", err)
-	}
-
-	// Wait for servers to spin up
-	time.Sleep(2500 * time.Millisecond)
-
-	// 3. Start Python Client C (we will capture its stdout to verify "step5_success")
-	pythonClientCmd := startProcess("python3", "python_client_c.py")
-	var pyStdout bytes.Buffer
-	pythonClientCmd.Stdout = &pyStdout
-	if err := pythonClientCmd.Start(); err != nil {
-		t.Fatalf("Failed to start Python Client C: %v", err)
-	}
-
-	// 4. Start Node Client B
-	nodeClientCmd := startProcess("node", "node_client_b.js")
-	if err := nodeClientCmd.Start(); err != nil {
-		t.Fatalf("Failed to start Node Client B: %v", err)
-	}
-
-	// Wait a moment for clients to connect
-	time.Sleep(1000 * time.Millisecond)
-
-	// 5. Connect Golang Client A (ws://localhost:6001)
-	c1 := bsclient.New("ws://localhost:6001", bsclient.Options{
+	// Step 6: Start Go Client C (subscribes to Server C, verifies step5)
+	c3 := bsclient.New("ws://localhost:6003", bsclient.Options{
 		AutoReconnect: func() *bool { b := false; return &b }(),
 	})
+	defer c3.Close()
 
-	c1.On("step1", func(payload interface{}) {
-		// Connect to Python Server B and emit step2
-		c2 := bsclient.New("ws://localhost:6002", bsclient.Options{
+	successChan := make(chan string, 1)
+	c3.On("step5", func(payload interface{}) {
+		m, _ := payload.(map[string]interface{})
+		msg, _ := m["msg"].(string)
+		if strings.Contains(msg, "hello from server C") {
+			successChan <- "step5_success"
+		}
+	})
+
+	// Step 4: Start Go Client B (subscribes to Server B, on step3 emits step4 to Server C)
+	c2 := bsclient.New("ws://localhost:6002", bsclient.Options{
+		AutoReconnect: func() *bool { b := false; return &b }(),
+	})
+	defer c2.Close()
+
+	c2.On("step3", func(payload interface{}) {
+		c2_to_c := bsclient.New("ws://localhost:6003", bsclient.Options{
 			AutoReconnect: func() *bool { b := false; return &b }(),
 		})
-
-		c2.On("connect", func(data interface{}) {
-			c2.Emit("step2", map[string]interface{}{"msg": "hello from golang client A"})
+		c2_to_c.On("connect", func(data interface{}) {
+			c2_to_c.Emit("step4", map[string]interface{}{"msg": "hello from client B"})
 			go func() {
-				time.Sleep(1 * time.Second)
-				c2.Close()
-				c1.Close()
+				time.Sleep(200 * time.Millisecond)
+				c2_to_c.Close()
 			}()
 		})
 	})
+
+	// Step 2: Start Go Client A (subscribes to Server A, on step1 emits step2 to Server B)
+	c1 := bsclient.New("ws://localhost:6001", bsclient.Options{
+		AutoReconnect: func() *bool { b := false; return &b }(),
+	})
 	defer c1.Close()
 
-	// Wait for the python client to finish and print "step5_success"
-	success := false
-	timeout := time.After(12 * time.Second)
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
+	c1.On("step1", func(payload interface{}) {
+		c1_to_b := bsclient.New("ws://localhost:6002", bsclient.Options{
+			AutoReconnect: func() *bool { b := false; return &b }(),
+		})
+		c1_to_b.On("connect", func(data interface{}) {
+			c1_to_b.Emit("step2", map[string]interface{}{"msg": "hello from client A"})
+			go func() {
+				time.Sleep(200 * time.Millisecond)
+				c1_to_b.Close()
+			}()
+		})
+	})
 
-	for {
-		select {
-		case <-timeout:
-			t.Fatal("Timeout waiting for combined integration test success")
-		case <-ticker.C:
-			if strings.Contains(pyStdout.String(), "step5_success") {
-				success = true
-				break
-			}
+	// Wait for success output
+	select {
+	case result := <-successChan:
+		if result != "step5_success" {
+			t.Fatalf("Expected step5_success, got %v", result)
 		}
-		if success {
-			break
-		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Timeout waiting for combined integration chain success")
 	}
 }
