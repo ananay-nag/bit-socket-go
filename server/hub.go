@@ -22,6 +22,8 @@ type connHub struct {
 
 	mu      sync.RWMutex
 	sockets map[string]*Socket // nsp -> socket
+
+	writeMu sync.Mutex // guards concurrent writes on conn
 }
 
 func newConnHub(conn *websocket.Conn, srv *Server, hs Handshake) *connHub {
@@ -34,20 +36,8 @@ func newConnHub(conn *websocket.Conn, srv *Server, hs Handshake) *connHub {
 }
 
 func (h *connHub) send(buf []byte) {
-	// Any socket on this hub shares the same underlying writeMu-guarded
-	// conn; grab any existing socket to reuse its safe-send path, or write
-	// directly if none exist yet (e.g. namespace-not-found error frame).
-	h.mu.RLock()
-	var any *Socket
-	for _, s := range h.sockets {
-		any = s
-		break
-	}
-	h.mu.RUnlock()
-	if any != nil {
-		any.send(buf)
-		return
-	}
+	h.writeMu.Lock()
+	defer h.writeMu.Unlock()
 	_ = h.conn.WriteMessage(websocket.BinaryMessage, buf)
 }
 

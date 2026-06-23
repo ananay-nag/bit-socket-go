@@ -73,11 +73,12 @@ func (s *Socket) namespace() *Namespace {
 
 func (s *Socket) send(buf []byte) {
 	s.writeMu.Lock()
-	defer s.writeMu.Unlock()
-	if s.closed {
+	isClosed := s.closed
+	s.writeMu.Unlock()
+	if isClosed {
 		return
 	}
-	_ = s.conn.WriteMessage(websocket.BinaryMessage, buf)
+	s.hub.send(buf)
 }
 
 // closeConn closes the entire underlying physical WebSocket connection,

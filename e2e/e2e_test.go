@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -75,11 +76,11 @@ func TestE2E_ConnectEmitAckRoomsSchemaSync(t *testing.T) {
 	c2 := bsclient.New("ws://127.0.0.1:18181", bsclient.Options{Nsp: "/secure-gateway", Headers: headers})
 	defer c2.Close()
 
-	var c1Connected, c2Connected bool
-	c1.On("connect", func(payload interface{}) { c1Connected = true })
-	c2.On("connect", func(payload interface{}) { c2Connected = true })
+	var c1Connected, c2Connected atomic.Bool
+	c1.On("connect", func(payload interface{}) { c1Connected.Store(true) })
+	c2.On("connect", func(payload interface{}) { c2Connected.Store(true) })
 
-	waitFor(t, 2*time.Second, func() bool { return c1Connected && c2Connected })
+	waitFor(t, 2*time.Second, func() bool { return c1Connected.Load() && c2Connected.Load() })
 
 	// schema auto-sync: client should now know SYNC_TEST without manual registration
 	waitFor(t, 2*time.Second, func() bool {
