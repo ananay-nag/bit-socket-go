@@ -3,7 +3,7 @@ package client
 import (
 	"sync"
 
-	"bitsocket/protocol"
+	"github.com/ananay-nag/bit-socket-go/protocol"
 )
 
 // Namespace is one multiplexed channel of a Client, bound to a single

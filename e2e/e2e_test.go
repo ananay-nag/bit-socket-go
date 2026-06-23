@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	bsclient "bitsocket/client"
-	"bitsocket/protocol"
-	bsserver "bitsocket/server"
+	bsclient "github.com/ananay-nag/bit-socket-go/client"
+	"github.com/ananay-nag/bit-socket-go/protocol"
+	bsserver "github.com/ananay-nag/bit-socket-go/server"
 )
 
 func waitFor(t *testing.T, timeout time.Duration, fn func() bool) {

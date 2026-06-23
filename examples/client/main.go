@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"bitsocket/client"
+	"github.com/ananay-nag/bit-socket-go/client"
 )
 
 func main() {

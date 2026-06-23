@@ -30,7 +30,7 @@ cd bit-socket-go
 go build ./...
 ```
 
-The module path is `bitsocket`. Add it to your project dependencies by adding a `replace` directive in `go.mod` (e.g., `replace bitsocket => ../bit-socket-go`).
+The module path is `github.com/ananay-nag/bit-socket-go`. Add it to your project dependencies by adding a `replace` directive in `go.mod` (e.g., `replace github.com/ananay-nag/bit-socket-go => ../bit-socket-go`).
 
 ---
 
@@ -46,8 +46,8 @@ import (
 	"errors"
 	"net/http"
 
-	"bitsocket/protocol"
-	"bitsocket/server"
+	"github.com/ananay-nag/bit-socket-go/protocol"
+	"github.com/ananay-nag/bit-socket-go/server"
 )
 
 func main() {
@@ -98,7 +98,7 @@ import (
 	"net/http"
 	"time"
 
-	"bitsocket/client"
+	"github.com/ananay-nag/bit-socket-go/client"
 )
 
 func main() {

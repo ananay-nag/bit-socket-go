@@ -2,7 +2,7 @@
 
 ## Version Information
 - **Current Version**: `1.0.0`
-- **Module Path**: `bitsocket`
+- **Module Path**: `github.com/ananay-nag/bit-socket-go`
 - **Target Platform**: Go >= 1.22
 
 ## Key Features

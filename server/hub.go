@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"bitsocket/protocol"
+	"github.com/ananay-nag/bit-socket-go/protocol"
 )
 
 // connHub owns the single physical WebSocket connection underlying

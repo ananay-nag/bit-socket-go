@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"bitsocket/protocol"
+	"github.com/ananay-nag/bit-socket-go/protocol"
 )
 
 // Options configures a new Client. All fields are optional; zero values

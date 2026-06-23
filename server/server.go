@@ -20,7 +20,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"bitsocket/protocol"
+	"github.com/ananay-nag/bit-socket-go/protocol"
 )
 
 // Config configures a new Server.

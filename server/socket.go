@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"bitsocket/protocol"
+	"github.com/ananay-nag/bit-socket-go/protocol"
 )
 
 // Socket represents one client multiplexed onto one namespace of one

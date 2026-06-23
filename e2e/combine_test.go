@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	bsclient "bitsocket/client"
-	bsserver "bitsocket/server"
+	bsclient "github.com/ananay-nag/bit-socket-go/client"
+	bsserver "github.com/ananay-nag/bit-socket-go/server"
 )
 
 func TestCombinedInteroperabilityChain(t *testing.T) {

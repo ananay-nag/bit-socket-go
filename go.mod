@@ -1,4 +1,4 @@
-module bitsocket
+module github.com/ananay-nag/bit-socket-go
 
 go 1.22.2
 

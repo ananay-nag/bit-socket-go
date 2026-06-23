@@ -7,8 +7,8 @@ import (
 	"errors"
 	"log"
 
-	"bitsocket/protocol"
-	"bitsocket/server"
+	"github.com/ananay-nag/bit-socket-go/protocol"
+	"github.com/ananay-nag/bit-socket-go/server"
 )
 
 func main() {

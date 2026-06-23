@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"bitsocket/server"
+	"github.com/ananay-nag/bit-socket-go/server"
 )
 
 func main() {

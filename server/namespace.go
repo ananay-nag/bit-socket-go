@@ -3,7 +3,7 @@ package server
 import (
 	"sync"
 
-	"bitsocket/protocol"
+	"github.com/ananay-nag/bit-socket-go/protocol"
 )
 
 // Namespace groups sockets, middleware, schemas, and rooms under a single
