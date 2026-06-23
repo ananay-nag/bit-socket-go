@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Build & Test
-    runs-on: ubuntu-latestclea
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Repository
